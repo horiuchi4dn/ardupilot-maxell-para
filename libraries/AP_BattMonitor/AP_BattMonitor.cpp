@@ -204,6 +204,12 @@ AP_BattMonitor::init()
                                                                  hal.i2c_mgr->get_device(AP_BATTMONITOR_SMBUS_BUS_EXTERNAL, AP_BATTMONITOR_SMBUS_I2C_ADDR));
                 _num_instances++;
                 break;
+            case BattMonitor_TYPE_MAXELL_PARA:
+                state[instance].instance = instance;
+                drivers[instance] = new AP_BattMonitor_SMBus_Maxell_Para(*this, state[instance],
+                                                                 hal.i2c_mgr->get_device(AP_BATTMONITOR_SMBUS_BUS_EXTERNAL, AP_BATTMONITOR_SMBUS_I2C_ADDR));
+                _num_instances++;
+                break;
             case BattMonitor_TYPE_BEBOP:
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BEBOP || CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_DISCO
                 state[instance].instance = instance;
@@ -248,7 +254,8 @@ bool AP_BattMonitor::has_current(uint8_t instance) const
         return (_monitoring[instance] == BattMonitor_TYPE_ANALOG_VOLTAGE_AND_CURRENT ||
                 _monitoring[instance] == BattMonitor_TYPE_SOLO ||
                 _monitoring[instance] == BattMonitor_TYPE_BEBOP ||
-                _monitoring[instance] == BattMonitor_TYPE_MAXELL);
+                _monitoring[instance] == BattMonitor_TYPE_MAXELL ||
+                _monitoring[instance] == BattMonitor_TYPE_MAXELL_PARA);
     }
 
     // not monitoring current
@@ -278,6 +285,14 @@ float AP_BattMonitor::current_amps(uint8_t instance) const {
 float AP_BattMonitor::current_total_mah(uint8_t instance) const {
     if (instance < _num_instances) {
         return _BattMonitor_STATE(instance).current_total_mah;
+    } else {
+        return 0.0f;
+    }
+}
+
+float AP_BattMonitor::capacity_remaining_mah(uint8_t instance) const {
+    if (instance < _num_instances) {
+        return drivers[instance]->capacity_remaining_mah();
     } else {
         return 0.0f;
     }
@@ -325,7 +340,7 @@ bool AP_BattMonitor::exhausted(uint8_t instance, float low_voltage, float min_ca
     }
 
     // check capacity if current monitoring is enabled
-    if (has_current(instance) && (min_capacity_mah > 0) && (_pack_capacity[instance] - state[instance].current_total_mah < min_capacity_mah)) {
+    if (has_current(instance) && (min_capacity_mah > 0) && capacity_remaining_mah(instance) < min_capacity_mah) {
         return true;
     }
 
@@ -375,4 +390,12 @@ bool AP_BattMonitor::get_temperature(float &temperature, const uint8_t instance)
         temperature = state[instance].temperature;
         return (AP_HAL::millis() - state[instance].temperature_time) <= AP_BATT_MONITOR_TIMEOUT;
     }
+}
+
+void
+AP_BattMonitor::write_log(uint8_t instance) const {
+    if (instance >= _num_instances || get_type(instance) != BattMonitor_TYPE_MAXELL_PARA) {
+        return;
+    }
+    ((AP_BattMonitor_SMBus_Maxell_Para*)drivers[instance])->write_log();
 }

@@ -1906,6 +1906,10 @@ void DataFlash_Class::Log_Write_AttitudeView(AP_AHRS_View &ahrs, const Vector3f 
 // Write an Current data packet
 void DataFlash_Class::Log_Write_Current(const AP_BattMonitor &battery)
 {
+    if (battery.num_instances() >= 1 && battery.get_type(0) == AP_BattMonitor::BattMonitor_TYPE_MAXELL_PARA) {
+        battery.write_log(0);
+        return;
+    }
     if (battery.num_instances() >= 1) {
         float temp;
         bool has_temp = battery.get_temperature(temp, 0);

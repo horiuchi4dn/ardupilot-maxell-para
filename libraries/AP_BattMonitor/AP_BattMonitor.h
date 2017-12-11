@@ -32,6 +32,7 @@ class AP_BattMonitor
     friend class AP_BattMonitor_SMBus;
     friend class AP_BattMonitor_SMBus_Solo;
     friend class AP_BattMonitor_SMBus_Maxell;
+    friend class AP_BattMonitor_SMBus_Maxell_Para;
 
 public:
 
@@ -45,7 +46,8 @@ public:
         BattMonitor_TYPE_ANALOG_VOLTAGE_AND_CURRENT = 4,
         BattMonitor_TYPE_SOLO                       = 5,
         BattMonitor_TYPE_BEBOP                      = 6,
-        BattMonitor_TYPE_MAXELL                     = 7
+        BattMonitor_TYPE_MAXELL                     = 7,
+        BattMonitor_TYPE_MAXELL_PARA                = 100
     };
 
     struct cells {
@@ -101,6 +103,9 @@ public:
     float current_total_mah(uint8_t instance) const;
     float current_total_mah() const { return current_total_mah(AP_BATT_PRIMARY_INSTANCE); }
 
+    float capacity_remaining_mah(uint8_t instance) const;
+    float capacity_remaining_mah() const { return capacity_remaining_mah(AP_BATT_PRIMARY_INSTANCE); }
+
     /// capacity_remaining_pct - returns the % battery capacity remaining (0 ~ 100)
     virtual uint8_t capacity_remaining_pct(uint8_t instance) const;
     uint8_t capacity_remaining_pct() const { return capacity_remaining_pct(AP_BATT_PRIMARY_INSTANCE); }
@@ -114,8 +119,8 @@ public:
     bool exhausted(float low_voltage, float min_capacity_mah) { return exhausted(AP_BATT_PRIMARY_INSTANCE, low_voltage, min_capacity_mah); }
 
     /// get_type - returns battery monitor type
-    enum BattMonitor_Type get_type() { return get_type(AP_BATT_PRIMARY_INSTANCE); }
-    enum BattMonitor_Type get_type(uint8_t instance) { return (enum BattMonitor_Type)_monitoring[instance].get(); }
+    enum BattMonitor_Type get_type() const { return get_type(AP_BATT_PRIMARY_INSTANCE); }
+    enum BattMonitor_Type get_type(uint8_t instance) const { return (enum BattMonitor_Type)_monitoring[instance].get(); }
 
     /// set_monitoring - sets the monitor type (used for example sketch only)
     void set_monitoring(uint8_t instance, uint8_t mon) { _monitoring[instance].set(mon); }
@@ -134,6 +139,7 @@ public:
     // temperature
     bool get_temperature(float &temperature) const { return get_temperature(temperature, AP_BATT_PRIMARY_INSTANCE); };
     bool get_temperature(float &temperature, const uint8_t instance) const;
+    void write_log(uint8_t instance) const;
 
     static const struct AP_Param::GroupInfo var_info[];
 

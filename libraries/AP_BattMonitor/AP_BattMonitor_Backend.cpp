@@ -44,3 +44,9 @@ int32_t AP_BattMonitor_Backend::get_capacity() const
 {
     return _mon.pack_capacity_mah(_state.instance);
 }
+
+float
+AP_BattMonitor_Backend::capacity_remaining_mah() const
+{
+    return get_capacity() - _state.current_total_mah;
+}
